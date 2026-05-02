@@ -4,6 +4,18 @@ A lightweight, standalone Express.js server for ultra-fast file transfers betwee
 
 **No internet required.** As long as your devices are on the same Wi-Fi network, you can beam files directly between them.
 
+---
+
+### 📥 Quick Download (Windows)
+
+**Not a developer?** You don't need to install Node.js or run any commands.
+
+1. Go to the [**Releases**](https://github.com/Ardian-Hoti/ftf/releases/latest) page.
+2. Download `ftf-server.exe`.
+3. Double-click to run—your QR code will appear instantly.
+
+---
+
 ## Why FTF?
 
 - ⚡ **No Cables:** Transfer files via simple QR codes or local URLs.
@@ -11,7 +23,9 @@ A lightweight, standalone Express.js server for ultra-fast file transfers betwee
 - 🛠️ **Persistent:** Unlike one-off CLI tools, FTF stays running so you can send/receive files whenever you need.
 - 📱 **Cross-Platform:** Works between any device with a browser (iOS, Android, Mac, Windows, Linux).
 
-## Install
+## Manual Install (Developers)
+
+If you prefer to run from source:
 
 ```bash
 git clone https://github.com/Ardian-Hoti/ftf.git

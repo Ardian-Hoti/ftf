@@ -1,8 +1,19 @@
 {
-	"name": "ftf",
+	"name": "ftf-server",
 	"version": "1.0.0",
 	"description": "Standalone Express server for QRCP – transfer files over Wi-Fi via QR code",
 	"main": "dist/server.js",
+	"bin": "dist/server.js",
+	"pkg": {
+		"assets": [
+			"views/**/*",
+			"public/**/*"
+		],
+		"targets": [
+			"node18-win-x64"
+		],
+		"outputPath": "bin"
+	},
 	"scripts": {
 		"build": "tsc",
 		"start": "node dist/server.js",
