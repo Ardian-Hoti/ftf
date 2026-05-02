@@ -269,18 +269,23 @@ async function main() {
 		const ip = getLocalIp();
 		const baseUrl = `http://${ip}:${PORT}`;
 
-		console.log("\n╔══════════════════════════════════════╗");
-		console.log("║           QRCP Server                ║");
-		console.log("╚══════════════════════════════════════╝");
-		console.log(`  Local:    http://localhost:${PORT}`);
-		console.log(`  Network:  ${baseUrl}`);
+		console.log("\n╔══════════════════════════════════════════════════════╗");
+		console.log("║               🚀 FTF - Fast Transfer Files           ║");
+		console.log("╚══════════════════════════════════════════════════════╝");
+		console.log(`  📶 Mode:      Local Network Only (No Internet Req.)`);
+		console.log(`  🏠 Local:     http://localhost:${PORT}`);
+		console.log(`  🌐 Network:   ${baseUrl}`);
+		console.log(`  📂 Storage:   ${DOWNLOAD_DIR}`);
 
-		console.log(`\n  Receive URL: ${baseUrl}/upload`);
-		console.log(`  Send URL:    ${baseUrl}/send`);
-		console.log("\n  Scan to upload from phone:\n");
-		await generateQRCodeTerminal(`${baseUrl}/upload`);
-		console.log(`\n  Download dir: ${DOWNLOAD_DIR}`);
-		console.log("\n  Press Ctrl+C to stop\n");
+		console.log("\n  --- ACCESS POINTS ---");
+		console.log(`  📥 Receive:   ${baseUrl}/upload`);
+		console.log(`  📤 Send:      ${baseUrl}/send`);
+
+		console.log("\n  --- SCAN TO UPLOAD FROM PHONE ---");
+		console.log(await generateQRCodeTerminal(`${baseUrl}/upload`));
+
+		console.log("\n  Status: Listening for devices...");
+		console.log("  Press Ctrl+C to stop\n");
 	});
 }
 
