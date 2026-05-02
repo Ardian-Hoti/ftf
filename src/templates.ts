@@ -254,12 +254,12 @@ const baseStyle = `
 `;
 
 export function dashboardPage(opts: {
-  qrDataUrl: string;
-  serverUrl: string;
-  downloadDir: string;
-  mode: "receive";
+	qrDataUrl: string;
+	serverUrl: string;
+	downloadDir: string;
+	mode: "receive";
 }): string {
-  return `<!DOCTYPE html>
+	return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -350,7 +350,7 @@ export function dashboardPage(opts: {
 }
 
 export function uploadPage(opts: { serverUrl: string }): string {
-  return `<!DOCTYPE html>
+	return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -478,29 +478,83 @@ export function uploadPage(opts: { serverUrl: string }): string {
 </html>`;
 }
 
-export function sendDashboardPage(opts: {
-  qrDataUrl: string;
-  serverUrl: string;
-  files: string[];
-}): string {
-  const fileItems = opts.files
-    .map((f, i) => {
-      const name = path.basename(f);
-      return `<a class="file-dl-item" href="${opts.serverUrl}file/${i}" download="${name}">
-        <span class="file-icon">📄</span>
-        <span class="file-name">${name}</span>
-        <span class="dl-arrow">↓</span>
-      </a>`;
-    })
-    .join("");
-
-  return `<!DOCTYPE html>
+export function sendDashboardPage(): string {
+	return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QRCP – Send</title>
-  <style>${baseStyle}</style>
+  <style>${baseStyle}
+    /* ---- Two-step send flow ---- */
+    #stepPick  { display: block; }
+    #stepQR    { display: none;  }
+
+    .qr-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    /* staged file list */
+    .staged-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+    .staged-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #ccc;
+    }
+    .staged-item .staged-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .staged-item .staged-size { color: #555; font-size: 12px; white-space: nowrap; }
+    .staged-item .remove-btn {
+      background: none;
+      border: none;
+      color: #555;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0 4px;
+      line-height: 1;
+      width: auto;
+      transition: color 0.2s;
+    }
+    .staged-item .remove-btn:hover { color: #ef4444; }
+
+    .btn-row { display: flex; gap: 10px; }
+    .btn-row .btn { flex: 1; }
+    .btn-secondary {
+      background: #2a2a2a;
+      color: #ccc;
+      border: 1px solid #3a3a3a;
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: #333;
+      transform: translateY(-1px);
+    }
+
+    /* upload progress */
+    .progress-wrap {
+      background: #111;
+      border-radius: 8px;
+      height: 6px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .progress-bar {
+      height: 100%;
+      background: #6366f1;
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 8px;
+    }
+    #uploadProgress { display: none; }
+    #progressLabel { font-size: 13px; color: #777; margin-bottom: 8px; }
+  </style>
 </head>
 <body>
   <nav>
@@ -512,63 +566,285 @@ export function sendDashboardPage(opts: {
   </nav>
   <div class="page">
     <div class="card">
-      <div class="card-title">📤 Send Files</div>
-      <div class="card-subtitle">Scan the QR code on your phone to download the files below.</div>
 
-      <div style="display:flex;flex-direction:column;align-items:center;text-align:center;">
-        <div class="qr-wrap">
-          <img src="${opts.qrDataUrl}" alt="QR Code" />
+      <!-- STEP 1: pick files -->
+      <div id="stepPick">
+        <div class="card-title">📤 Send Files</div>
+        <div class="card-subtitle">Select the files you want to share, then generate a QR code for your phone to scan and download them.</div>
+
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="fileInput" multiple />
+          <div class="drop-icon">📂</div>
+          <div class="drop-text"><strong>Choose files</strong> or drag &amp; drop</div>
         </div>
-        <div class="badge ready">
-          <span class="badge-dot"></span>
-          <span>Ready to send</span>
+
+        <div class="staged-list" id="stagedList"></div>
+
+        <div id="uploadProgress">
+          <div id="progressLabel">Preparing…</div>
+          <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
         </div>
-        <div class="url-row" style="width:100%;">
-          <span class="label">URL</span>
-          <a href="${opts.serverUrl}send/files" target="_blank" style="color:#6366f1;">${opts.serverUrl}send/files</a>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="generateBtn" disabled>Generate QR Code</button>
         </div>
       </div>
 
-      <hr class="divider">
-      <div style="font-size:13px;color:#555;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;">Files (${opts.files.length})</div>
-      <div class="file-dl-list">${fileItems}</div>
+      <!-- STEP 2: QR code -->
+      <div id="stepQR">
+        <div class="card-title">📱 Scan to Download</div>
+        <div class="card-subtitle">Scan this QR code from your phone to open the download page.</div>
+
+        <div class="qr-section">
+          <div class="qr-wrap">
+            <img id="qrImg" src="" alt="QR Code" />
+          </div>
+          <div class="badge ready">
+            <span class="badge-dot"></span>
+            <span id="qrFileCount"></span>
+          </div>
+          <div class="url-row" style="width:100%;">
+            <span class="label">URL</span>
+            <a id="qrLink" href="#" target="_blank" style="color:#6366f1;"></a>
+          </div>
+        </div>
+
+        <hr class="divider">
+        <div style="font-size:13px;color:#555;margin-bottom:12px;text-transform:uppercase;letter-spacing:0.5px;" id="qrFilesLabel"></div>
+        <div class="staged-list" id="qrFileList"></div>
+
+        <button class="btn btn-secondary" id="resetBtn" style="margin-top:8px;">← Share Different Files</button>
+      </div>
+
     </div>
   </div>
+
+  <script>
+  (() => {
+    const fileInput    = document.getElementById('fileInput');
+    const dropZone     = document.getElementById('dropZone');
+    const stagedList   = document.getElementById('stagedList');
+    const generateBtn  = document.getElementById('generateBtn');
+    const stepPick     = document.getElementById('stepPick');
+    const stepQR       = document.getElementById('stepQR');
+    const qrImg        = document.getElementById('qrImg');
+    const qrLink       = document.getElementById('qrLink');
+    const qrFileCount  = document.getElementById('qrFileCount');
+    const qrFilesLabel = document.getElementById('qrFilesLabel');
+    const qrFileList   = document.getElementById('qrFileList');
+    const resetBtn     = document.getElementById('resetBtn');
+    const uploadProgress = document.getElementById('uploadProgress');
+    const progressBar  = document.getElementById('progressBar');
+    const progressLabel= document.getElementById('progressLabel');
+
+    let stagedFiles = []; // { file, id }
+    let nextId = 0;
+
+    function formatSize(b) {
+      if (b < 1024) return b + ' B';
+      if (b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+      return (b/(1024*1024)).toFixed(1) + ' MB';
+    }
+
+    function renderStaged() {
+      stagedList.innerHTML = stagedFiles.map(({file, id}) =>
+        '<div class="staged-item" data-id="' + id + '">' +
+          '<span>📄</span>' +
+          '<span class="staged-name">' + file.name + '</span>' +
+          '<span class="staged-size">' + formatSize(file.size) + '</span>' +
+          '<button class="remove-btn" data-id="' + id + '" title="Remove">×</button>' +
+        '</div>'
+      ).join('');
+      generateBtn.disabled = stagedFiles.length === 0;
+    }
+
+    function addFiles(fileList) {
+      for (const f of fileList) {
+        // avoid exact duplicates by name+size
+        const dup = stagedFiles.some(s => s.file.name === f.name && s.file.size === f.size);
+        if (!dup) stagedFiles.push({ file: f, id: nextId++ });
+      }
+      renderStaged();
+    }
+
+    // File input
+    fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
+
+    // Drag & drop
+    ['dragenter','dragover','dragleave','drop'].forEach(ev =>
+      dropZone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); })
+    );
+    ['dragenter','dragover'].forEach(ev => dropZone.addEventListener(ev, () => dropZone.classList.add('drag-over')));
+    ['dragleave','drop'].forEach(ev => dropZone.addEventListener(ev, () => dropZone.classList.remove('drag-over')));
+    dropZone.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+
+    // Remove individual file
+    stagedList.addEventListener('click', e => {
+      const btn = e.target.closest('.remove-btn');
+      if (!btn) return;
+      const id = parseInt(btn.dataset.id, 10);
+      stagedFiles = stagedFiles.filter(s => s.id !== id);
+      renderStaged();
+    });
+
+    // Generate QR – upload files to server, get back a session URL
+    generateBtn.addEventListener('click', async () => {
+      if (!stagedFiles.length) return;
+      generateBtn.disabled = true;
+      uploadProgress.style.display = 'block';
+
+      const total = stagedFiles.length;
+      let done = 0;
+
+      // Upload each file one by one
+      for (const { file } of stagedFiles) {
+        progressLabel.textContent = 'Uploading ' + (done + 1) + ' of ' + total + ': ' + file.name;
+        progressBar.style.width = Math.round((done / total) * 100) + '%';
+        try {
+          await fetch('/api/send-stage', {
+            method: done === 0 ? 'POST' : 'PUT',  // POST resets session, PUT appends
+            headers: { 'x-filename': encodeURIComponent(file.name) },
+            body: file
+          });
+        } catch (err) {
+          progressLabel.textContent = 'Error uploading ' + file.name;
+          generateBtn.disabled = false;
+          return;
+        }
+        done++;
+        progressBar.style.width = Math.round((done / total) * 100) + '%';
+      }
+
+      progressLabel.textContent = 'Generating QR…';
+      progressBar.style.width = '100%';
+
+      // Get QR data from server
+      const res = await fetch('/api/send-qr');
+      const data = await res.json();
+
+      // Show step 2
+      qrImg.src = data.qrDataUrl;
+      qrLink.href = data.url;
+      qrLink.textContent = data.url;
+      qrFileCount.textContent = total + ' file' + (total !== 1 ? 's' : '') + ' ready';
+      qrFilesLabel.textContent = 'Files (' + total + ')';
+      qrFileList.innerHTML = stagedFiles.map(({file}) =>
+        '<div class="staged-item"><span>📄</span><span class="staged-name">' + file.name + '</span><span class="staged-size">' + formatSize(file.size) + '</span></div>'
+      ).join('');
+
+      uploadProgress.style.display = 'none';
+      stepPick.style.display = 'none';
+      stepQR.style.display = 'block';
+    });
+
+    // Reset
+    resetBtn.addEventListener('click', async () => {
+      await fetch('/api/send-stage', { method: 'DELETE' });
+      stagedFiles = [];
+      renderStaged();
+      stepQR.style.display = 'none';
+      stepPick.style.display = 'block';
+      generateBtn.disabled = true;
+    });
+  })();
+  </script>
 </body>
 </html>`;
 }
 
 export function sendFilesPage(opts: {
-  files: string[];
-  serverUrl: string;
+	files: { name: string; idx: number; size: number }[];
 }): string {
-  const fileItems = opts.files
-    .map((f, i) => {
-      const name = path.basename(f);
-      return `<a class="file-dl-item" href="/file/${i}" download="${name}">
+	const fileItems = opts.files
+		.map(({ name, idx, size }) => {
+			const kb =
+				size < 1024
+					? `${size} B`
+					: size < 1024 * 1024
+						? `${(size / 1024).toFixed(1)} KB`
+						: `${(size / (1024 * 1024)).toFixed(1)} MB`;
+			return `<div class="file-dl-item">
         <span class="file-icon">📄</span>
-        <span class="file-name">${name}</span>
-        <span class="dl-arrow">↓</span>
-      </a>`;
-    })
-    .join("");
+        <span class="file-name">${name}<br><span style="color:#555;font-size:12px;">${kb}</span></span>
+        <a class="dl-btn" href="/file/${idx}" download="${name}">↓ Download</a>
+      </div>`;
+		})
+		.join("");
 
-  return `<!DOCTYPE html>
+	const hasMultiple = opts.files.length > 1;
+
+	return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QRCP Download</title>
   <style>${baseStyle}
-    .page { padding: 20px; }
+    .page { padding: 20px; min-height: 100vh; }
+    .file-dl-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #111;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #ccc;
+    }
+    .file-dl-item .file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
+    .dl-btn {
+      background: #6366f1;
+      color: #fff;
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background 0.2s;
+    }
+    .dl-btn:hover { background: #4f46e5; }
+    .dl-all-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #6366f1;
+      color: #fff;
+      text-decoration: none;
+      padding: 15px 24px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      width: 100%;
+      margin-top: 8px;
+      margin-bottom: 24px;
+      transition: background 0.2s, transform 0.2s;
+      box-sizing: border-box;
+    }
+    .dl-all-btn:hover { background: #4f46e5; transform: translateY(-1px); }
+    .divider { border: none; border-top: 1px solid #2a2a2a; margin: 20px 0; }
+    .section-label { font-size: 12px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
   </style>
 </head>
 <body>
   <div class="page">
     <div class="card">
       <div class="card-title">📥 Download Files</div>
-      <div class="card-subtitle">Tap a file to download it to your device.</div>
-      <div class="file-dl-list">${fileItems}</div>
+      <div class="card-subtitle">${opts.files.length} file${opts.files.length !== 1 ? "s" : ""} ready to download.</div>
+
+      ${
+			hasMultiple
+				? `<a class="dl-all-btn" href="/file/all.zip" download="qrcp-files.zip">⬇ Download All (zip)</a>
+      <hr class="divider">
+      <div class="section-label">Or download individually</div>`
+				: ""
+		}
+
+      <div>${fileItems}</div>
     </div>
   </div>
 </body>

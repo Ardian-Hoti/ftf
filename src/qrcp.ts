@@ -4,10 +4,7 @@ import path from "path";
 import fs from "fs";
 import { IncomingMessage } from "http";
 
-export const defaultDownloadDir = path.join(
-	// homedir(),
-	"C:/Users/Ardian/Desktop/camera/snapchat/video",
-);
+export const defaultDownloadDir = path.join(homedir(), "Downloads");
 
 export function getLocalIp(): string {
 	const nets = networkInterfaces();
