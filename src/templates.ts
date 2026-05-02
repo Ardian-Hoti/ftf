@@ -264,12 +264,12 @@ export function dashboardPage(opts: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QRCP – Receive</title>
+  <title>FTF – Receive</title>
   <style>${baseStyle}</style>
 </head>
 <body>
   <nav>
-    <div class="nav-brand">📡 <span>QRCP</span> Server</div>
+    <div class="nav-brand">📡 <span>FTF</span> Server</div>
     <div class="nav-links">
       <a class="nav-link active" href="/">Receive</a>
       <a class="nav-link" href="/send">Send</a>
@@ -355,7 +355,7 @@ export function uploadPage(opts: { serverUrl: string }): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QRCP Upload</title>
+  <title>FTF Upload</title>
   <style>${baseStyle}
     .page { padding: 20px; }
   </style>
@@ -484,7 +484,7 @@ export function sendDashboardPage(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QRCP – Send</title>
+  <title>FTF – Send</title>
   <style>${baseStyle}
     /* ---- Two-step send flow ---- */
     #stepPick  { display: block; }
@@ -558,7 +558,7 @@ export function sendDashboardPage(): string {
 </head>
 <body>
   <nav>
-    <div class="nav-brand">📡 <span>QRCP</span> Server</div>
+    <div class="nav-brand">📡 <span>FTF</span> Server</div>
     <div class="nav-links">
       <a class="nav-link" href="/">Receive</a>
       <a class="nav-link active" href="/send">Send</a>
@@ -778,7 +778,7 @@ export function sendFilesPage(opts: {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QRCP Download</title>
+  <title>FTF Download</title>
   <style>${baseStyle}
     .page { padding: 20px; min-height: 100vh; }
     .file-dl-item {
@@ -838,7 +838,7 @@ export function sendFilesPage(opts: {
 
       ${
 			hasMultiple
-				? `<a class="dl-all-btn" href="/file/all.zip" download="qrcp-files.zip">⬇ Download All (zip)</a>
+				? `<a class="dl-all-btn" href="/file/all.zip" download="fTF-files.zip">⬇ Download All (zip)</a>
       <hr class="divider">
       <div class="section-label">Or download individually</div>`
 				: ""
