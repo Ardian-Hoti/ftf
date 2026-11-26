@@ -248,10 +248,7 @@ app.get("/file/:idx", (req: Request, res: Response) => {
 		return;
 	}
 
-	res.setHeader(
-		"Content-Disposition",
-		`attachment; filename="${staged.name}"`,
-	);
+	res.setHeader("Content-Disposition", contentDispositionAttachment(staged.name));
 	const stream = fs.createReadStream(staged.tmpPath);
 	stream.on("error", () => {
 		if (!res.headersSent) res.status(500).send("Error reading file");
@@ -259,6 +256,20 @@ app.get("/file/:idx", (req: Request, res: Response) => {
 	stream.pipe(res);
 	res.on("finish", () => console.log(`[send] ✓ downloaded: ${staged.name}`));
 });
+
+/** Build a safe attachment header while preserving Unicode names for modern clients. */
+function contentDispositionAttachment(name: string): string {
+	const asciiFallback = name
+		.normalize("NFKD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/[^\x20-\x7E]/g, "_")
+		.replace(/[\\";]/g, "_")
+		.replace(/[\r\n]/g, "_") || "download";
+	const encoded = encodeURIComponent(name).replace(/['()*]/g, (char) =>
+		`%${char.charCodeAt(0).toString(16).toUpperCase()}`,
+	);
+	return `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encoded}`;
+}
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 async function main() {

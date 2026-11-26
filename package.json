@@ -15,7 +15,8 @@
 		"outputPath": "bin"
 	},
 	"scripts": {
-		"build": "tsc",
+		"build": "tsc -p tsconfig.json",
+		"prestart": "npm run build",
 		"start": "node dist/server.js",
 		"dev": "ts-node-dev --respawn --transpile-only src/server.ts",
 		"receive": "ts-node --transpile-only src/server.ts receive",
